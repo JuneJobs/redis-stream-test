@@ -1,0 +1,26 @@
+{
+  "name": "redis-stream-test",
+  "version": "1.0.0",
+  "description": "test redis stream",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JuneJobs/redis-stream-test.git"
+  },
+  "keywords": [
+    "Redis",
+    "Stream"
+  ],
+  "author": "Junhee Park",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JuneJobs/redis-stream-test/issues"
+  },
+  "homepage": "https://github.com/JuneJobs/redis-stream-test#readme",
+  "dependencies": {
+    "ioredis": "^4.16.0"
+  }
+}
