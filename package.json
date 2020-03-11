@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/JuneJobs/redis-stream-test#readme",
   "dependencies": {
-    "ioredis": "^4.16.0"
+    "ioredis": "^4.16.0",
+    "node-code-generator": "^1.0.3"
   }
 }
