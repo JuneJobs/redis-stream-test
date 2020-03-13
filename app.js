@@ -1,5 +1,5 @@
-// let Redis = require("ioredis");
-// let redisCli = new Redis();
+let ioRedis = require("ioredis");
+let redisCli = new ioRedis();
 const codeGenerator = require("node-code-generator");
 const fs = require('fs');
 const csvjson = require('csvjson');
@@ -110,38 +110,109 @@ class Utility {
     };
 };
 
-// class RedisCommand {
-//     stream = {
-//         set = (dataSet) => {
-//             redisCli.xadd();
-//         }
-//     }
-// }
+class intuseerRedis {
+    init = () => {
+        return new Promise((resolve) => {
+            redisCli.flushall((err, result) => {
+                if(err) {
+                    console.err(err);
+                } else {
+                    resolve(true);
+                }
+            })
+        });
+    }
+    /**
+     * function memoryCheck()
+     * Output of redis info -> used_memory_by_human
+     */
+    memoryCheck = () =>{
+        return new Promise((resolve) => {
+            redisCli.info('Memory', (err, result)=> {
+                if(err) {
+                    console.err(err);
+                } else {
+                    resolve(parseFloat(result.split(/\n?:/)[2].split('M')[0]));
+                }
+            })
+        })
+    }
+    run = (command) => {
+        return new Promise((resolve) => {
+            redisCli.multi([command]).exec((err, result) => {
+                if(err) {
+                    console.err(err);
+                } else {
+                    resolve(true);
+                }
+            });
+        });
+    }
+    /** Format
+        add: () => {
+            return new Promise((resolve) => {
+                resolve(output);
+            });
+        }
+     */
+}
 
 let util = new Utility();
+let redis = new intuseerRedis();
 //본사 GPS : 35.834882, 128.679314
 //util.generateGps(100, 35.8, 128.6);
 let main = async () => {
-    let objSensors = await util.csv.read('sensor');
+    //let objSensors = await util.csv.read('sensor');
     //sensorList 생성
-    if(objSensors.length === 0) {
-        await util.csv.write('sensor');
-    }
-    /** 
-      * 각 센서별 데이터 생성, 시간 많이 걸림 (20분정도)
-      * 센서: 100개 / 최초 에폭: 1262304000 : (2010년1월1일) 
-      * 센서별: collect interval: 10 min
-      *       size: 20,000 (약 4~5달치)
-      *       format: ()안에 string length 표시. x.x표기는 정수부 길이와, 소수부 길이를 의미 
-      *              created_at(10), entry_id(5), pm2p5cf1(2.2), pm10atm(2.2), pm1p0cfatm(2.2), pm1p0atm(2.2), pm2p5cfatm(2.2), pm10p0cfatm(3.2), ps0p3(4.2), ps0p5(4.2), ps1p0(3.2), ps2p5(2.2), ps5p0(2.2), ps10p0(1.2)
-      */ 
-    let objDataset = await util.csv.read('dataset');
-    if(objDataset.length === 0) {
-        await util.csv.write('dataset', [objSensors, 20000]);
-    }
-    console.log('done');
+    // if(objSensors.length === 0) {
+    //     await util.csv.write('sensor');
+    // }
+    // /** 
+    //   * 각 센서별 데이터 생성, 시간 많이 걸림 (20분정도)
+    //   * 센서: 100개 / 최초 에폭: 1262304000 : (2010년1월1일) 
+    //   * 센서별: collect interval: 10 min
+    //   *       size: 20,000 (약 4~5달치)
+    //   *       format: ()안에 string length 표시. x.x표기는 정수부 길이와, 소수부 길이를 의미 
+    //   *              created_at(10), entry_id(5), pm2p5cf1(2.2), pm10atm(2.2), pm1p0cfatm(2.2), pm1p0atm(2.2), pm2p5cfatm(2.2), pm10p0cfatm(3.2), ps0p3(4.2), ps0p5(4.2), ps1p0(3.2), ps2p5(2.2), ps5p0(2.2), ps10p0(1.2)
+    //   */ 
+    // let objDataset = await util.csv.read('dataset');
+    // if(objDataset.length === 0) {
+    //     await util.csv.write('dataset', [objSensors, 20000]);
+    // }
+    // console.log('done');
     //redis로 데이터 삽입
 
-
+    //redis 초기화
+    let beforeMemory = 0,
+        afterMemory = 0;
+    const epoch = 1262304000,
+          testMaxTime = 100,
+          ssn = '00001',
+          keyHead= 'db:air:his:',
+          dataQty = 100000;
+    for (let testCount = 0; testCount < testMaxTime; testCount++) {
+        //Test xadd
+        await redis.init();
+        beforeMemory = await redis.memoryCheck();
+        for (let i = 0; i < dataQty; i++) {
+            let timestamp = epoch + i * 600;
+            //xadd, key, id, field1, value1, field2, value2, ... ,
+            await redis.run(['xadd',keyHead+ssn, timestamp, 'pm2p5cf1', util.getRndData(2, 2), 'pm10atm', util.getRndData(2, 2)]);
+        }
+        afterMemory = await redis.memoryCheck();
+        console.log(`[Stream-${testCount}]used memory:`, (afterMemory-beforeMemory).toFixed(2));
+        
+        //Test zadd
+        await redis.init();
+        beforeMemory = await redis.memoryCheck();
+        for (let i = 0; i < dataQty; i++) {
+            let timestamp = epoch + i * 600;
+            //xadd, key, score, field1, value1, field2, value2, ... ,
+            await redis.run(['zadd',keyHead+ssn, timestamp, timestamp+ ',' +util.getRndData(2, 2)+ ',' +util.getRndData(2, 2)]);
+        }
+        afterMemory = await redis.memoryCheck();
+        console.log(`[Sorted set-${testCount}]used memory:`,(afterMemory-beforeMemory).toFixed(2));
+    }
+   
 }
 main();
