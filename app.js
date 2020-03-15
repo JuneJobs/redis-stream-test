@@ -104,10 +104,28 @@ class Utility {
                             }
                         });
                     })
+                } else if (fileName === 'test') {
+                    // name, sequence, qty, used memory, elapsed time 
+                    fs.appendFile(`./res/${fileName}.csv`, resource.replace(/,/gi,',\t')+'\n', function (err) {
+                        if (err) {
+                            console.err(err);
+                        } else {
+                            resolve(true);
+                        }
+                    });
                 }
             });
         }
-    };
+    }
+    time = {
+        tempTime : 0,
+        start: () => {
+            this.timeTemp =  new Date().getTime();
+        },
+        elapsed: () => {
+            return (new Date().getTime() - this.timeTemp)/1000;
+        }
+    }
 };
 
 class intuseerRedis {
@@ -193,6 +211,7 @@ let main = async () => {
     for (let testCount = 0; testCount < testMaxTime; testCount++) {
         //Test xadd
         await redis.init();
+        util.time.start();
         beforeMemory = await redis.memoryCheck();
         for (let i = 0; i < dataQty; i++) {
             let timestamp = epoch + i * 600;
@@ -200,10 +219,11 @@ let main = async () => {
             await redis.run(['xadd',keyHead+ssn, timestamp, 'pm2p5cf1', util.getRndData(2, 2), 'pm10atm', util.getRndData(2, 2)]);
         }
         afterMemory = await redis.memoryCheck();
-        console.log(`[Stream-${testCount}]used memory:`, (afterMemory-beforeMemory).toFixed(2));
-        
+        console.log(`[Stream-${testCount}]used memory:`, (afterMemory-beforeMemory).toFixed(2), 'elapsed time:', util.time.elapsed());
+        await util.csv.write('test', `Stream    ,${testCount},${dataQty},${(afterMemory-beforeMemory).toFixed(2)},${util.time.elapsed()}`);
         //Test zadd
         await redis.init();
+        util.time.start();
         beforeMemory = await redis.memoryCheck();
         for (let i = 0; i < dataQty; i++) {
             let timestamp = epoch + i * 600;
@@ -211,7 +231,8 @@ let main = async () => {
             await redis.run(['zadd',keyHead+ssn, timestamp, timestamp+ ',' +util.getRndData(2, 2)+ ',' +util.getRndData(2, 2)]);
         }
         afterMemory = await redis.memoryCheck();
-        console.log(`[Sorted set-${testCount}]used memory:`,(afterMemory-beforeMemory).toFixed(2));
+        console.log(`[Sorted set-${testCount}]used memory:`,(afterMemory-beforeMemory).toFixed(2), 'elapsed time:', util.time.elapsed());
+        await util.csv.write('test', `Sorted set,${testCount},${dataQty},${(afterMemory-beforeMemory).toFixed(2)},${util.time.elapsed()}`);
     }
    
 }
