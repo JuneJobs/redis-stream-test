@@ -113,6 +113,15 @@ class Utility {
                             resolve(true);
                         }
                     });
+                } else if (fileName === "test-search") {
+                    //        await util.csv.write('test-search', `Stream,${epoch},7,${1008},${util.time.elapsed()}`);
+                    fs.appendFile(`./res/${fileName}.csv`, resource.replace(/,/gi,',\t')+'\n', function (err) {
+                        if (err) {
+                            console.err(err);
+                        } else {
+                            resolve(true);
+                        }
+                    });
                 }
             });
         }
@@ -161,7 +170,7 @@ class intuseerRedis {
                 if(err) {
                     console.err(err);
                 } else {
-                    resolve(true);
+                    resolve(result);
                 }
             });
         });
@@ -179,7 +188,7 @@ let util = new Utility();
 let redis = new intuseerRedis();
 //본사 GPS : 35.834882, 128.679314
 //util.generateGps(100, 35.8, 128.6);
-let main = async () => {
+let test1 = async () => {
     //let objSensors = await util.csv.read('sensor');
     //sensorList 생성
     // if(objSensors.length === 0) {
@@ -207,7 +216,7 @@ let main = async () => {
           testMaxTime = 100,
           ssn = '00001',
           keyHead= 'db:air:his:',
-          dataQty = 100000;
+          dataQty = 1000;
     for (let testCount = 0; testCount < testMaxTime; testCount++) {
         //Test xadd
         await redis.init();
@@ -234,6 +243,96 @@ let main = async () => {
         console.log(`[Sorted set-${testCount}]used memory:`,(afterMemory-beforeMemory).toFixed(2), 'elapsed time:', util.time.elapsed());
         await util.csv.write('test', `Sorted set,${testCount},${dataQty},${(afterMemory-beforeMemory).toFixed(2)},${util.time.elapsed()}`);
     }
+    //데이터 가져오기
+    //Purple air 기준 1주일치 데이터 가져오기
+    //2010년 에폭기준 7주일 후: 1262908800
+
    
 }
-main();
+//test1();
+
+let test2 = async () => {
+    let beforeMemory = 0,
+        afterMemory = 0;
+    const epoch = 1262304000,
+          testMaxTime = 100,
+          ssn1 = '00001',
+          ssn2 = '00002',
+          keyHead= 'db:air:his:',
+          dataQty = 100000;
+    //데이터 초기화
+    // await redis.init();
+    // beforeMemory = await redis.memoryCheck();
+    // //데이터 삽입
+    // for (let i = 0; i < dataQty; i++) {
+    //     let timestamp = epoch + i * 600;
+    //     //xadd, key, id, field1, value1, field2, value2, ... ,
+    //     //created_at(10), entry_id(5), pm2p5cf1(2.2), pm10atm(2.2), pm1p0cfatm(2.2), pm1p0atm(2.2), pm2p5cfatm(2.2), pm10p0cfatm(3.2), ps0p3(4.2), ps0p5(4.2), ps1p0(3.2), ps2p5(2.2), ps5p0(2.2), ps10p0(1.2)
+    //     await redis.run(['xadd',keyHead+ssn1, timestamp, 
+    //         'pm2p5cf1', util.getRndData(2, 2), 
+    //         'pm10atm', util.getRndData(2, 2),
+    //         'pm1p0cfatm', util.getRndData(2, 2),
+    //         'pm1p0atm', util.getRndData(2, 2),
+    //         'pm2p5cfatm', util.getRndData(2, 2),
+    //         'pm10p0cfatm', util.getRndData(3, 2),
+    //         'ps0p3', util.getRndData(4, 2),
+    //         'ps0p5', util.getRndData(4, 2),
+    //         'ps1p0', util.getRndData(3, 2),
+    //         'ps2p5', util.getRndData(2, 2),
+    //         'ps5p0', util.getRndData(2, 2),
+    //         'ps10p0', util.getRndData(1, 2)
+    //     ]);
+    // }
+    // afterMemory = await redis.memoryCheck();
+    // console.log((afterMemory-beforeMemory).toFixed(2));
+    // beforeMemory = await redis.memoryCheck();
+    // for (let i = 0; i < dataQty; i++) {
+    //     let timestamp = epoch + i * 600;
+    //     //xadd, key, id, field1, value1, field2, value2, ... ,
+    //     //created_at(10), entry_id(5), pm2p5cf1(2.2), pm10atm(2.2), pm1p0cfatm(2.2), pm1p0atm(2.2), pm2p5cfatm(2.2), pm10p0cfatm(3.2), ps0p3(4.2), ps0p5(4.2), ps1p0(3.2), ps2p5(2.2), ps5p0(2.2), ps10p0(1.2)
+    //     await redis.run(['zadd',keyHead+ssn2, timestamp, timestamp+ ',' +
+    //         util.getRndData(2, 2)+ ',' +
+    //         util.getRndData(2, 2)+ ',' +
+    //         util.getRndData(2, 2)+ ',' +
+    //         util.getRndData(2, 2)+ ',' +
+    //         util.getRndData(2, 2)+ ',' +
+    //         util.getRndData(3, 2)+ ',' +
+    //         util.getRndData(4, 2)+ ',' +
+    //         util.getRndData(4, 2)+ ',' +
+    //         util.getRndData(3, 2)+ ',' +
+    //         util.getRndData(2, 2)+ ',' +
+    //         util.getRndData(2, 2)+ ',' +
+    //         util.getRndData(1, 2)
+    //     ]);
+    // }
+    // afterMemory = await redis.memoryCheck();
+    // console.log((afterMemory-beforeMemory).toFixed(2));
+    let data = {};
+    for (let testCount = 0; testCount < testMaxTime; testCount++) {
+        //1주
+        util.time.start();
+        data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1262304000]);
+        await util.csv.write('test-search', `Stream    ,${epoch},7,${1008},${util.time.elapsed()}`);
+        util.time.start();
+        data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1262304000]);
+        await util.csv.write('test-search', `Sorted set,${epoch},7,${1008},${util.time.elapsed()}`);
+
+        //1달
+        util.time.start();
+        data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1264982400]);
+        await util.csv.write('test-search', `Stream    ,${epoch},31,${4464},${util.time.elapsed()}`);
+        util.time.start();
+        data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1264982400]);
+        await util.csv.write('test-search', `Sorted set,${epoch},31,${4464},${util.time.elapsed()}`);
+
+        //1년
+        util.time.start();
+        data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1293840000]);
+        await util.csv.write('test-search', `Stream    ,${epoch},365,${52560},${util.time.elapsed()}`);
+        util.time.start();
+        data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1293840000]);
+        await util.csv.write('test-search', `Sorted set,${epoch},365,${52560},${util.time.elapsed()}`);
+    }
+    console.log("end");
+}
+test2();
