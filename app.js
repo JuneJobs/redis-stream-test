@@ -310,20 +310,20 @@ let test2 = async () => {
     let data = {};
     for (let testCount = 0; testCount < testMaxTime; testCount++) {
         //1주
-        util.time.start();
-        data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1262304000]);
-        await util.csv.write('test-search', `Stream    ,${epoch},7,${1008},${util.time.elapsed()}`);
-        util.time.start();
-        data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1262304000]);
-        await util.csv.write('test-search', `Sorted set,${epoch},7,${1008},${util.time.elapsed()}`);
+        // util.time.start();
+        // data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1262304000]);
+        // await util.csv.write('test-search', `Stream    ,${epoch},7,${1008},${util.time.elapsed()}`);
+        // util.time.start();
+        // data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1262304000]);
+        // await util.csv.write('test-search', `Sorted set,${epoch},7,${1008},${util.time.elapsed()}`);
 
-        //1달
-        util.time.start();
-        data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1264982400]);
-        await util.csv.write('test-search', `Stream    ,${epoch},31,${4464},${util.time.elapsed()}`);
-        util.time.start();
-        data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1264982400]);
-        await util.csv.write('test-search', `Sorted set,${epoch},31,${4464},${util.time.elapsed()}`);
+        // //1달
+        // util.time.start();
+        // data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1264982400]);
+        // await util.csv.write('test-search', `Stream    ,${epoch},31,${4464},${util.time.elapsed()}`);
+        // util.time.start();
+        // data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1264982400]);
+        // await util.csv.write('test-search', `Sorted set,${epoch},31,${4464},${util.time.elapsed()}`);
 
         //1년
         util.time.start();
@@ -332,6 +332,28 @@ let test2 = async () => {
         util.time.start();
         data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1293840000]);
         await util.csv.write('test-search', `Sorted set,${epoch},365,${52560},${util.time.elapsed()}`);
+
+        //1년 그룹 그룹은 5개로 나눠서 10512
+        util.time.start();
+        await redis.run(['xgroup', 'create', `db:air:his:00001`, 'g1', epoch]);
+        await redis.run(['xgroup', 'create', `db:air:his:00001`, 'g2', epoch+600*73]);
+        await redis.run(['xgroup', 'create', `db:air:his:00001`, 'g3', epoch+600*73*2]);
+        await redis.run(['xgroup', 'create', `db:air:his:00001`, 'g4', epoch+600*73*3]);
+        await redis.run(['xgroup', 'create', `db:air:his:00001`, 'g5', epoch+600*73*4]);
+        let all = [];
+        data = await redis.run(['xreadgroup', 'group', `g1`, 'c1', 'count', '10512', 'block', 0, 'streams', 'db:air:his:00001', '>']);
+        all.push(data[0][1][0][1]);
+        data = await redis.run(['xreadgroup', 'group', `g2`, 'c2', 'count', '10512', 'block', 0, 'streams', 'db:air:his:00001', '>']);
+        all.push(data[0][1][0][1]);
+        data = await redis.run(['xreadgroup', 'group', `g3`, 'c3', 'count', '10512', 'block', 0, 'streams', 'db:air:his:00001', '>']);
+        all.push(data[0][1][0][1]);
+        data = await redis.run(['xreadgroup', 'group', `g4`, 'c4', 'count', '10512', 'block', 0, 'streams', 'db:air:his:00001', '>']);
+        all.push(data[0][1][0][1]);
+        data = await redis.run(['xreadgroup', 'group', `g5`, 'c5', 'count', '10512', 'block', 0, 'streams', 'db:air:his:00001', '>']);
+        all.push(data[0][1][0][1]);
+        await util.csv.write('test-search', `Stream G  ,${epoch},365,${52560},${util.time.elapsed()}`);
+
+
     }
     console.log("end");
 }
