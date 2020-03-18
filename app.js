@@ -534,17 +534,52 @@ let main = async () => {
         }
     }
     if(mode === 'read') {
-        await util.csv.write('test-search', `structureType, startTs, dayQty, tupleQty, elapsedTime`);
-        for (let testIdx = 0; testIdx < testMaxTime; testIdx++) { 
-            util.time.start();
-            data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch, 1293840000]);
-            await util.csv.write('test-search', `Sorted set,${epoch},365,${52560},${util.time.elapsed()}`);
+        //100000건
+        dataQty = 100000;
+        //데이터 삽입
+        await redis.init();
+        for (let i = 0; i < dataQty; i++) {
+            let timestamp = epoch + i * 600;
+            await redis.run(['xadd',keyHead+ssn1, timestamp, 
+                'pm2p5cf1', util.getRndData(2, 2), 
+                'pm10atm', util.getRndData(2, 2),
+                'pm1p0cfatm', util.getRndData(2, 2),
+                'pm1p0atm', util.getRndData(2, 2),
+                'pm2p5cfatm', util.getRndData(2, 2),
+                'pm10p0cfatm', util.getRndData(3, 2),
+                'ps0p3', util.getRndData(4, 2),
+                'ps0p5', util.getRndData(4, 2),
+                'ps1p0', util.getRndData(3, 2),
+                'ps2p5', util.getRndData(2, 2),
+                'ps5p0', util.getRndData(2, 2),
+                'ps10p0', util.getRndData(1, 2)
+            ]);
+            await redis.run(['zadd',keyHead+ssn2, timestamp, timestamp+ ',' +
+                util.getRndData(2, 2)+ ',' +
+                util.getRndData(2, 2)+ ',' +
+                util.getRndData(2, 2)+ ',' +
+                util.getRndData(2, 2)+ ',' +
+                util.getRndData(2, 2)+ ',' +
+                util.getRndData(3, 2)+ ',' +
+                util.getRndData(4, 2)+ ',' +
+                util.getRndData(4, 2)+ ',' +
+                util.getRndData(3, 2)+ ',' +
+                util.getRndData(2, 2)+ ',' +
+                util.getRndData(2, 2)+ ',' +
+                util.getRndData(1, 2)
+            ]);
         }
+        await util.csv.write('test-search', `structureType, startTs, dayQty, tupleQty, elapsedTime`);
 
         for (let testIdx = 0; testIdx < testMaxTime; testIdx++) { 
             util.time.start();
-            data = await redis.run(['xrange', `db:air:his:00001`, epoch, 1293840000]);
+            data = await redis.run(['xrange', `db:air:his:00001`, epoch+40000, 1293840000+40000]);
             await util.csv.write('test-search', `Stream    ,${epoch},365,${52560},${util.time.elapsed()}`);
+        }
+        for (let testIdx = 0; testIdx < testMaxTime; testIdx++) { 
+            util.time.start();
+            data = await redis.run(['zrangebyscore', `db:air:his:00002`, epoch+40000, 1293840000+40000]);
+            await util.csv.write('test-search', `Sorted set,${epoch},365,${52560},${util.time.elapsed()}`);
         }
 
     }
